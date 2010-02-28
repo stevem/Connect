@@ -706,7 +706,8 @@ function connect_action_send_email(&$parent, &$child, $op = '', $target = 'child
       foreach ($mail_op_list as $action) {
         $lookup_actions[$action] = $action;
       }
-      
+
+      // setup for lookup function
       $return['variables']['email_lookup'] = array(
         '#type'  => 'fieldset',
         '#title' => 'Target lookup',

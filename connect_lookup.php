@@ -3,6 +3,10 @@
 /*
  *  implementation of hook_connect_lookup
  *
+ *  NB: lookup functions are intended to return contact information to 
+ *  be passed back to, say, an email or fax function. They should return
+ *  an array with keys 'name', 'fax', and 'email'.
+ *
  * @return array (function name => function description)
  */
 function connect_connect_lookup() {
