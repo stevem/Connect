@@ -128,11 +128,19 @@ function connect_action_basic(&$parent, &$child, $op='', $target='parent') {
 			'#required' => TRUE,
 		);
 
+		$thank_you_description = t('This message will be shown when the action is complete.  You can use the following placeholders, which will be filled in from the information they fill out:');
+        $child_type   = connect_node_options($parent->nid, 'participant_type');         
+        $child_fields = _connect_get_child_fields($child_type);
+		foreach($child_fields as $field_name => $field_label) {
+		   if(!empty($field_name)) { $thank_you_description .= " %$field_name "; }
+		}
+		
 		$return['variables']['thankyou'] = array(
 			'#type'  => 'textarea',
 			'#size' => 4,
 			'#title' => 'Thank-you message',
 			'#default_value' => connect_node_options($parent->nid, 'thankyou'),
+			'#description' => $thank_you_description,
 			'#required' => TRUE,
 		);
 		return $return;
@@ -141,8 +149,8 @@ function connect_action_basic(&$parent, &$child, $op='', $target='parent') {
 	case 'status' :
 		// display 'thank you' message
 		if (isset($_SESSION['connect_action_thanks_'.$parent->nid])) {
+		    $message = $_SESSION['connect_action_thanks_'.$parent->nid];
 			unset($_SESSION['connect_action_thanks_'.$parent->nid]);
-			$message = connect_node_options($parent->nid, 'thankyou');
 			return array(
 				'status' => $message,
 				'show_form' => FALSE,
@@ -158,8 +166,21 @@ function connect_action_basic(&$parent, &$child, $op='', $target='parent') {
 		db_query($sql, $child->nid, $parent->nid);
 		
 		// record fact of current user's participation
+		$message = connect_node_options($parent->nid, 'thankyou');
+		
+		// @TODO - this would probably be better done with the token module.
+		$child_type   = connect_node_options($parent->nid, 'participant_type');
+        $child_fields = _connect_get_child_fields($child_type);
+        foreach($child_fields as $fieldName => $fieldLabel) {
+           if(!empty($fieldName)) {
+              $fieldPath = _connect_get_field_path($child,$fieldName);
+              eval("\$fieldValue = \$child".$fieldPath.";");
+              $message = str_replace('%'.$fieldName, $fieldValue, $message);
+           }
+        }
+		
 		$_SESSION['connect_action_basic_'.$parent->nid] = TRUE;
-		$_SESSION['connect_action_thanks_'.$parent->nid] = TRUE;
+		$_SESSION['connect_action_thanks_'.$parent->nid] = $message;
 		break;
 
 	case 'delete' :
