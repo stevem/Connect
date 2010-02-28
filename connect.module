@@ -401,19 +401,19 @@ function connect_forms() {
 /** wrappers for page and block form processing **/
 
 function connect_form_page_validate($form, &$form_state) {
-  connect_form_validate($form, &$form_state);
+  connect_form_validate($form, $form_state);
 }
 
 function connect_form_page_submit($form, &$form_state) {
-  connect_form_submit($form, &$form_state);
+  connect_form_submit($form, $form_state);
 }
 
 function connect_form_block_submit($form, &$form_state) {
-  connect_form_submit($form, &$form_state);
+  connect_form_submit($form, $form_state);
 }
 
 function connect_form_block_validate($form, &$form_state) {
-  connect_form_validate($form, &$form_state);
+  connect_form_validate($form, $form_state);
 }
 
 
@@ -447,7 +447,7 @@ function connect_form($type = 'page') {
 
   // allow action functions to alter the form
   connect_call_hooks($parent, $form, 'form_alter', 'child');
-	
+
   // add call to action
   $form['call_to_action'] = array(
     '#prefix' => '<div id="connect-form-title">',
@@ -825,7 +825,7 @@ function connect_call_hooks(&$parent, &$child, $op = '', $target = 'child') {
   if (!$op || !$parent || ($target=='child' && !$child)) return $return;
 
   // make sure we have a child array, even if empty
-  $child = empty($child) ? array() : $child;
+  if (empty($child)) $child = array();
 
   // display what hooks are called in what order
   $debug_hooks = (connect_node_options($parent->nid, 'debug_hooks') == 'yes'); 
@@ -849,7 +849,7 @@ function connect_call_hooks(&$parent, &$child, $op = '', $target = 'child') {
     }
 
     // call the hook
-    $action_return = call_user_func($action, &$parent, &$child, $op, $target);
+    $action_return = call_user_func($action, $parent, &$child, $op, $target);
     if ($action_return) $return[$action] = $action_return;
     
     // debug return value
@@ -1011,7 +1011,7 @@ function _connect_action_display_participants($parent_nid = NULL) {
     $header = array();
     $display_fields = variable_get('connect_'. $parent->nid .'_options', FALSE);
     if (!$display_fields) return;
-    
+  
     $display_fields = unserialize($display_fields);
     foreach ($display_fields as $key => $value) {
       if (empty($value) || strpos($key, 'display_participants_fields_') === FALSE) {

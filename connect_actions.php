@@ -634,6 +634,17 @@ function connect_action_send_email(&$parent, &$child, $op = '', $target = 'child
 				'#required' => TRUE,
 			);
        
+      $default = connect_node_options($parent->nid, 'send_test');
+      $default = $default ? $default : 'no';
+      $return['variables']['send_test'] = array(
+              '#type'  => 'radios',
+              '#title' => t('Send a test message?'),
+              '#description' => t('Choose \'yes\' to send yourself a test version of the email if the campaign is not yet live.'),
+              '#options' => array('yes' => 'Yes', 'no' => 'No'),
+              '#default_value' => $default,
+              '#required' => TRUE,
+      );
+
       // stringent validation?
       $return['variables']['email_stringent'] = array(
           '#type'  => 'radios',
@@ -940,6 +951,17 @@ function connect_action_send_email(&$parent, &$child, $op = '', $target = 'child
       }
       $message->headers = $headers;
 
+      // send test version?
+      $send_test = (connect_node_options($parent->nid, 'send_test') == 'yes');
+      if (!$active && $send_test) {
+        $author = user_load(array('uid' => $parent->uid));
+        $testmessage = $message;
+        $testmessage->to = $author->mail;
+        $testmessage->headers = array();
+        $testresult = _connect_send_email($testmessage, $html, TRUE);
+        drupal_set_message('A test message was sent to '. $author->mail);
+      }
+
       // send it
       $result = _connect_send_email($message, $html, $active);
 
@@ -952,8 +974,11 @@ function connect_action_send_email(&$parent, &$child, $op = '', $target = 'child
 
     case 'status' :
       $message  = '';
+      $active = (connect_node_options($parent->nid, 'is_live') == 'yes');
       if (isset($_SESSION['connect_'.$parent->nid.'_email_sent'])) {
-        $message = $_SESSION['connect_'.$parent->nid.'_email_sent'] ? 'Your email message was sent to: ' .$_SESSION['connect_'.$parent->nid.'_email_sent'] : 'Sorry, but there was a problem sending the message. The problem will be investigated, and your message will be sent when the problem is resolved.';
+        if ($active) {
+          $message = $_SESSION['connect_'.$parent->nid.'_email_sent'] ? 'Your email message was sent to: ' .$_SESSION['connect_'.$parent->nid.'_email_sent'] : 'Sorry, but there was a problem sending the message. The problem will be investigated, and your message will be sent when the problem is resolved.';
+        }
         unset($_SESSION['connect_'.$parent->nid.'_email_sent']);
       }
       return array(
