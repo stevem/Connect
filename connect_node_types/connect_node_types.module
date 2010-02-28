@@ -1,0 +1,3 @@
+<?php
+
+include_once('connect_node_types.features.inc');
