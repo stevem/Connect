@@ -132,7 +132,7 @@ function connect_action_basic(&$parent, &$child, $op='', $target='parent') {
         $child_type   = connect_node_options($parent->nid, 'participant_type');         
         $child_fields = _connect_get_child_fields($child_type);
 		foreach($child_fields as $field_name => $field_label) {
-		   if(!empty($field_name)) { $thank_you_description .= " %$field_name "; }
+		   if(!empty($field_name)) { $thank_you_description .= " %$field_name% "; }
 		}
 		
 		$return['variables']['thankyou'] = array(
@@ -175,7 +175,7 @@ function connect_action_basic(&$parent, &$child, $op='', $target='parent') {
            if(!empty($fieldName)) {
               $fieldPath = _connect_get_field_path($child,$fieldName);
               eval("\$fieldValue = \$child".$fieldPath.";");
-              $message = str_replace('%'.$fieldName, $fieldValue, $message);
+              $message = str_replace('%'.$fieldName.'%', $fieldValue, $message);
            }
         }
 		
