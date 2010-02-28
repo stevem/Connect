@@ -1,0 +1,237 @@
+<?php
+
+class ConnectTest extends DrupalTestCase {
+
+  function get_info() {
+    return array(
+      'name' => t('Test for connect module'),
+      'desc' => t('Sets up a petiton. Adds a participant. Makes sure vote once, progress, and participant storage works'),
+      'group' => t('Connect'),
+    );
+  }
+  
+  //small test to make sure connect_is_postalcode works
+  function testPostalCodeUtility() {
+    $code = 'K1C 5E3';
+    $returnVal = connect_is_postalcode($code);
+    $this -> assertTrue($returnVal, t('connect_is_postalcode: valid postal code returns true'));
+    
+    $code = 'KIC 5E3';
+    $returnVal = connect_is_postalcode($code);
+    $this -> assertFalse($returnVal, t('connect_is_postalcode: invalid postal code returns false'));
+  }
+  
+  //this test adds two types. One for campaign one for participant. It sets up the connect module and makes a petition. It adds one participant and makes sure it got stored properly. It also makes sure the progress bar is working and the vote once function is working. 
+  function testSetupOfConnect(){
+    
+    //set up a user that can add a parent and child node
+    $test_user = $this->drupalCreateUserRolePerm(array(
+      'access administration menu',
+      'access connect',	
+      'create connect campaign',	
+      'manage connect',
+      'access content',
+      'administer content types',
+      'access administration pages',	
+      'administer site configuration',
+    ));
+    $this->drupalLogInUser($test_user);
+
+    
+    //create a parent node (campaign)
+    $parent_node = array();
+    $parent_node['name'] = $this ->randomName();
+    $parent_node['type'] = strtolower($this ->randomName());  
+    $this->drupalPostRequest('admin/content/types/add',$parent_node,'Save content type');
+    
+    //add a field to the parent node
+    $add_field_parent_location = 'admin/content/types/'.str_ireplace("_","-",$parent_node['type']).'/add_field';
+    $parent_node_add_field = array();
+    $parent_node_add_field['label'] = strtolower($this->randomName());//petition text
+    $parent_node_add_field['field_widget_type'] = 'text-text';
+    $this->drupalPostRequest($add_field_parent_location, $parent_node_add_field,'Create field');
+    
+    //create the child node
+    $child_node = array();
+    $child_node['name'] = $this ->randomName();
+    $child_node['type'] = strtolower($this ->randomName());  
+    $this->drupalPostRequest('admin/content/types/add',$child_node,'Save content type');
+    
+    //add fields to the child node
+    $add_field_child_location = 'admin/content/types/'.str_ireplace("_","-",$child_node['type']).'/add_field';
+    $child_node_add_field1 = array();
+    $child_node_add_field1['label'] = strtolower($this->randomName());//name
+    $child_node_add_field1['field_widget_type'] = 'text-text';
+    $this->drupalPostRequest($add_field_child_location, $child_node_add_field1,'Create field');
+    
+    $child_node_add_field2 = array();
+    $child_node_add_field2['label'] = strtolower($this->randomName());//city
+    $child_node_add_field2['field_widget_type'] = 'text-text';
+    $this->drupalPostRequest($add_field_child_location, $child_node_add_field2,'Create field');
+    
+    $child_node_add_field3 = array();
+    $child_node_add_field3['label'] = strtolower($this->randomName());//province/state
+    $child_node_add_field3['field_widget_type'] = 'text-text';
+    $this->drupalPostRequest($add_field_child_location, $child_node_add_field3,'Create field');
+    
+    $child_node_add_field4 = array();
+    $child_node_add_field4['label'] = strtolower($this->randomName());//petition text
+    $child_node_add_field4['field_widget_type'] = 'text-text';
+    $this->drupalPostRequest($add_field_child_location, $child_node_add_field4,'Create field');
+    
+    //configure the connect module
+    $connect = array();
+    $connect['connect_participant_nodes['.$child_node['type'].']'] = $child_node['type'];
+    $connect['connect_parent_nodes['.$parent_node['type'].']'] = $parent_node['type'];
+    $connect['connect_captcha_required'] = 'no';
+    $connect['connect_cache_EDID2MP'] = '1 d';
+    $connect['connect_cache_postalcode2riding'] = '1 d';
+    $connect['connect_cache_EDID2MPP'] = '1 d';
+    $connect['connect_cache_postalcode2ontarioriding'] = '2 d';
+    $this->drupalPostRequest('admin/settings/connect', $connect,'Submit');
+      
+    
+    // Logout of admin user
+    $url = url('logout', array('absolute' => TRUE));
+    $this->drupalGet($url);
+    
+    
+    //create another user that can create the new content types
+    $test_user2 = $this->drupalCreateUserRolePerm(array(
+      'access administration menu',
+      'access connect',	
+      'create connect campaign',	
+      'manage connect',
+      'access content',
+      'administer content types',
+      'access administration pages',	
+      'administer site configuration',
+      'create '.$parent_node['type'] .' content',
+      'create '.$child_node['type'] .' content',
+      'edit '.$parent_node['type'] .' content',
+      'edit '.$child_node['type'] .' content',
+      
+    ));
+    $this->drupalLogInUser($test_user2);
+   
+    
+    //add campaign content type
+    $add_campaign = array();
+    $add_campaign['title'] = $this->randomName();
+    $add_campaign['field_'.$parent_node_add_field['label'].'[0][value]'] = $this->randomName();
+    $add_campaign['body'] = $this->randomName();
+    $this->drupalPostRequest('node/add/'.str_ireplace("_","-",$parent_node['type']), $add_campaign,'Submit');
+    
+    
+    $node_campaign = node_load(array('title' => $add_campaign['title']));
+       
+    //edit the campaign
+    $edit_campaign_function_url = "node/$node_campaign->nid/connect/admin/functions";
+    $edit_campaign_function = array();
+    
+    //display progress bar
+    $edit_campaign_function['actions[connect_action_display_progress]'] = 'connect_action_display_progress';
+    
+    //display participants
+    //<input id="edit-actions-connect-action-display-participants" name="actions[connect_action_display_participants]" value="connect_action_display_participants">
+    $edit_campaign_function['actions[connect_action_display_participants]']='connect_action_display_participants';
+    $this->drupalPostRequest($edit_campaign_function_url,$edit_campaign_function ,'Submit' );
+    
+    //"campaign_variables[variables_connect_action_display_progress][display_progress_goal]"
+    //edit campaign Settings
+    $edit_campaign_url = "node/$node_campaign->nid/connect/admin/settings";
+    $edit_campaign = array();
+    $edit_campaign['campaign_variables[variables_connect_action_basic][is_live]'] = 'no';
+    $edit_campaign['campaign_variables[variables_connect_action_basic][participant_type]'] = $child_node['type'];
+    $edit_campaign['campaign_variables[variables_connect_action_basic][call_to_action]'] = 'sign your name to the petition';
+    $edit_campaign['campaign_variables[variables_connect_action_basic][thankyou]'] = 'Thank you for participating';
+    $edit_campaign['campaign_variables[variables_connect_action_basic][participant_title]']='the participant title';
+    //settings for display progress
+    $edit_campaign['campaign_variables[variables_connect_action_display_progress][display_progress_goal]']='100';
+    $this->drupalPostRequest($edit_campaign_url, $edit_campaign,'Submit');
+    
+    //***debug testing only..
+    $this->assertNoText('is required', 'Make sure no required fields are missing from edit campaign');
+    
+    
+    //edit campaign settings second post.. could not do all in one post?
+    $edit_campaign2 = array();
+    $edit_campaign2['variables_child[display_participants_displayme]'] = 'field_'.$child_node_add_field1['label'];
+    $edit_campaign2['campaign_variables[variables_connect_action_display_participants][display_participants_fields_0]'] = 'field_'.$child_node_add_field2['label'];
+    $edit_campaign2['campaign_variables[variables_connect_action_display_participants][display_participants_fields_1]'] = 'field_'.$child_node_add_field3['label'];
+    $edit_campaign2['campaign_variables[variables_connect_action_display_participants][display_participants_fields_2]'] = 'field_'.$child_node_add_field4['label'];
+    
+    
+    $this->drupalPostRequest($edit_campaign_url, $edit_campaign2, 'Submit');
+    
+    //make sure the campaign got entered
+    $node_campaign_configured = node_load($node_campaign->nid);
+    $this->assertNotNull($node_campaign_configured, 'Campaign node found in database. %s');
+    if ($node_campaign_configured != null){
+        
+      //load up the parent node
+      $get_url = url("node/$node_campaign_configured->nid", array('absolute' => TRUE));
+      $this->drupalGet($get_url);
+      
+      //make sure the title is there
+      $this->assertText($add_campaign['title'],'Make sure that the campaign title is there');
+      
+      //make sure the assertion is there
+      $this->assertText(t('sign your name to the petition'), t('Make sure that the call to action apears on the campaign node'));
+      
+    }
+    
+    //add a child node
+    $child_add_url = "node/$node_campaign_configured->nid";
+    $child_add = array();
+    $child_add['field_'.$child_node_add_field1['label'].'[0][value]'] = 'node 1 field 1';
+    $child_add['field_'.$child_node_add_field2['label'].'[0][value]'] = 'node 1 field 2';
+    $child_add['field_'.$child_node_add_field3['label'].'[0][value]'] = 'node 1 field 3';
+    $child_add['field_'.$child_node_add_field4['label'].'[0][value]'] = 'node 1 field 4';
+    $this->drupalPostRequest($child_add_url, $child_add,'Submit');
+    
+    //check to make sure the petition is functional
+    $this->assertText(t('Thank you for participating'),t('Make sure the participant gets thanked'));
+    $this->assertText(t('1%'),t('Make sure the progress gets tracked'));
+    $this->assertText(t('100 the participant title'),t('Make sure the progress goal is correct'));
+    $this->assertText(t('Display the participant title'),t('Make sure the link for Display is there'));
+    
+    //make sure the node got saved
+    $this->clickLink('Display the participant title');
+    
+    $this->assertText(t($child_node_add_field1['label']),t('Make sure node got saved properly (field 1-label)'));
+    $this->assertText(t('node 1 field 1'),t('Make sure node got saved properly (field 1)'));
+    $this->assertText(t($child_node_add_field2['label']),t('Make sure node got saved properly (field 2-label)'));
+    $this->assertText(t('node 1 field 2'),t('Make sure node got saved properly (field 1)'));
+    $this->assertText(t($child_node_add_field3['label']),t('Make sure node got saved properly (field 3-label)'));
+    $this->assertText(t('node 1 field 3'),t('Make sure node got saved properly (field 1)'));
+    $this->assertText(t($child_node_add_field4['label']),t('Make sure node got saved properly (field 4-label)'));
+    $this->assertText(t('node 1 field 4'),t('Make sure node got saved properly (field 1)'));
+    
+    //configure one vote per person
+    $oneVoteFunction = array();
+    $oneVoteFunction['actions[connect_action_voteonce]'] = 'connect_action_voteonce';
+    $this->drupalPostRequest($edit_campaign_function_url, $oneVoteFunction, 'Submit');
+    
+    $oneVoteSettings = array();    
+    $oneVoteSettings['variables_child[voteonce_identifier]'] = 'field_'.$child_node_add_field1['label'];
+    $this->drupalPostRequest($edit_campaign_url, $oneVoteSettings, 'Submit');
+    
+    //make sure one vote per person is working
+    $this->clickLink('View');
+    
+    $this->assertText(t('You have already participated'),t('Make sure already participated text apears when using vote once'));
+    $this->assertNoText($child_node_add_field1['label'],t('Make sure user does not have access to child node inputs (vote once)'));
+    
+    
+    //Clean up 
+    //remove parent node
+    $this->drupalPostRequest('admin/content/types/'.str_ireplace("_","-",$parent_node['type']).'/delete',array(),'Delete');
+    //remove child node
+    $this->drupalPostRequest('admin/content/types/'.str_ireplace("_","-",$child_node['type']).'/delete',array(),'Delete');
+  }
+  
+  
+}
+
+?>

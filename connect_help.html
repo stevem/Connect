@@ -1,0 +1,145 @@
+<p>The connect module 'connects' child nodes to parent nodes. The parent nodes could be petitions, online email or fax actions, or even event registrations. We refer to them generically as the 'parent' or 'campaign' nodes. The child (or 'participant') nodes represent the petition signers, action participants, etc.</p>
+
+<p>This module lets you assign a variety of functions to a parent node (such as sending an email or a fax, adding participants to CiviCRM, allowing participants to customize the fax or email, displaying a progress meter, etc.). When the parent node is displayed, connect creates a form that allows users to enter the required information to create a new participant record. When the form is submitted, all the actions are launched, the participant is recorded as having participated in the action, and the participant information is saved.</p>
+
+
+<p><strong>To create a campaign</strong></p>
+<ul>
+<li>declare what node types can be managed by connect from Site configuration > Connect module settings (see the &quot;Node types&quot; discussion below)</li>
+<li>create a new campaign node of the proper type, and fill out the fields as desired</li>
+<li>from the &quot;settings&quot; tab, choose the basic campaign settings</li>
+<li>from the &quot;functions&quot; tab, select the functions you want to add to the campaign</li>
+<li>return to the &quot;settings&quot; tab to configure the new functions (note that choosing some settings will cause additional settings to appear, so make sure all the required elements are filled out before using your new campaign)</li>
+<li>set up a CAPTCHA challenge for the connect forms (see the &quot;CAPTCHA&quot; section below)</li>
+<li>displaying the campaign node will now also display the participant form; filling out that form will trigger the associated functions</li>
+</ul>
+
+
+<p><strong>Node Types</strong></p>
+<p>Before using connect, you need to set up at least one parent and one child node type. Any node types that you set up as child/participant or parent/campaign nodes will be subject to processing by the connect module, so create node types specifically for use with this module.</p>
+<p>The parent node types can contain any fields you want to display, but when you set up your connect functions, additional fields may become necessary. (For example, fax and email campaign functions save the success or failure of the fax/email in the child node, so there has to be a field available to hold that information.) The &quot;required fields in parent/campaign node&quot; and &quot;required fields in child/participant node&quot; sections of the settings form identify what fields are necessary in each node type for the functions you have selected.</p>
+<p>To prevent any 'administrative' fields in the child node from being displayed on the connect participation form, set the teaser display to 'hidden' when you add the field.</p>
+
+
+<p><strong>Campaign functions</strong></p>
+
+<p>Connect comes with the following functions.</p>
+
+<dl>
+<dt><em>CiviCRM: add participants</em></dt>
+<dd>If you use CiviCRM, this functions allows you to automatically insert campaign participants into your CiviCRM records. By default, it creates a group named after the parent campaign and adds new participants to CiviCRM as members of that group.</dd>
+
+<dt><em>Content: append</em></dt>
+<dd>This function is only relevant in cases where something is being done with the content by another function. It allows participants to add their own comments, etc. to the content provided by the parent node. In practice, this means that the content from the child field is appended to the content from the parent field before any further action (email or fax, for instance) is taken.</dd>
+
+<dt><em>Content: rewrite</em></dt>
+<dd>Allows participants to revise the content provided by the parent node. In this case, a designated field in the parent node is copied to the child node, where it can be edited as part of the form submission. The resulting text is used in the place of the parent version for any further actions (such as emailing or faxing) and is saved in the participant node.</dd>
+
+<dt><em>Display participants</em></dt>
+<dd>Adds a "display participants" link above the form, which presents a tabular list of participants who have indicated they are willing to be so listed.</dd>
+
+<dt><em>Display progress bar</em></dt>
+<dd>Adds a CSS-based display showing how many of the target number have participated.</dd>
+
+<dt><em>Double opt-in</em></dt>
+<dd>This function sends a configurable email to the participant that includes a URL to confirm their participation. <strong>This has only been partially implemented.</strong> It records their successful double opt-in in a field in the participant node, which is available for use by other functions (only the "display participants" function currently uses it). <em>Plans for this function include making the entire action dependent on the double opt-in, so that no functions will fire until it is approved.</em></dd>
+
+<dt><em>MyFax (defined target)</em></dt>
+<dd>Sends fax (using the myfax.com service) to a specified name and fax no.</dd>
+
+<dt><em>MyFax (target lookup)</em></dt>
+<dd>Sends fax (using the myfax.com service) to a target determined by the participant's information.</dd>
+
+<!--
+<dt><em>Provide a block</em></dt>
+<dd>Allows the participation form to be presented as a block instead of appended to the parent node in the main content area. Settings for this feature allow admins to suppress the usual form and control when the block appears.</dd>
+-->
+
+<dt><em>Redirect on submit</em></dt>
+<dd>Adds the ability to redirect to a specified URL or node when the participation form has been submitted successfully. This overrides the default behaviour of returning to the parent node.</dd>
+
+<dt><em>Send Email</em></dt>
+<dd>Allows the campaign to send email. A list of To/CC/BCC addresses can be provided, and one target can be determined on the basis of information provided by the participant (such as an elected representative selected on the basis of postal code).If you experience delivery failures (as indicated by "Failed" in the email result field in the participant nodes), you can attempt to re-send the failed emails using the "Re-send emails" tab. Only failed emails will be re-sent.</dd>
+
+<dt><em>One vote per person</em></dt>
+<dd>Prevent the same person from participating more than once. <strong>NOTE: the connect module does not by default enforce single partcipation. Enable this feature to do so.</strong></dd>
+</dl>
+
+
+<p><strong>Configuration examples</strong></p>
+
+<p><em><strong>Petition</strong></em></p>
+<p>A petition allows participants to add their names and other identifying information to the list of participants. Thus, the node types for a petition might look like this.</p>
+
+campaign_petition
+<ul>
+<li>title</li>
+<li>body</li>
+<li>petition text</li>
+</ul>
+
+participant_petitioner
+<ul>
+<li>title</li>
+<li>name</li>
+<li>city</li>
+<li>province/state</li>
+<li>postal code</li>
+</ul>
+
+<p>That represents the most basic functionality provided by the connect module &mdash; associating many participants with a single campaign. Additional functions allow it to do may more things, but new functionality requires more node fields to hold additional information.</p>
+
+<p><em><strong>Email campaign</strong></em></p>
+
+<p>For instance, if you want participation to trigger an email message that is sent to a defined target, you would enable the &quot;Email (defined target)&quot; function and create node types like so:</p>
+
+campaign_email
+<ul>
+<li>title</li>
+<li>body</li>
+<li>email_subject</li>
+<li>email_body</li>
+</ul>
+
+participant_email
+<ul>
+<li>title</li>
+<li>name</li>
+<li>city</li>
+<li>province/state</li>
+<li>postal code</li>
+<li>email address</li>
+<li>email result</li>
+</ul>
+
+<p>(The email will appear to come from the participant's email address, and the 'email result' field is a text field that will hold a message regarding the success or failure of the attempt to send the email.)</p>
+
+<p><em><strong>Email campaign + custom message</strong></em></p>
+
+<p>And if you want to enable the participant to edit the content of the email that is sent, you would also turn on the &quot;Content: rewrite&quot; function and add another field to the participant_email nodetype:</p>
+
+participant_email
+<ul>
+<li>title</li>
+<li>name</li>
+<li>city</li>
+<li>province/state</li>
+<li>postal code</li>
+<li>email address</li>
+<li>email result</li>
+<li>participant email body</li>
+</ul>
+
+<p>When you add and configure the &quot;Content: rewrite&quot; function, the parent email_body will be available for the participant to revise, and the revised version of the text will be emailed to your target (and saved in the 'participant email body' field).</p>
+
+
+<p><strong>Sending HTML Email</strong></p>
+
+<p>Connect can send plain-text or HTML emails. Plain text is simple: make sure the email body field (which is usually in the parent node, but can be in the child node if you are using the &quot;Content: replace&quot; function) has its &quot;Text processing&quot; option set to &quot;Plain text&quot;. This ensures that your email content will not contain any HTML tags when it is sent.</p>
+
+<p>In order to send HTML mail, you must first install and configure the mimemail module. Connect uses this module to send HTML-formatted emails. Note that you do not need to make mimemail the default mail handler for your whole site if you just want to use it for connect. Next, make sure the &quot;Text processing&quot; option in the node type set to &quot;Filtered text&quot; and that the filter in the node itself is set to one of the HTML filters. This will preserve your HTML when it's mailed. To activate the HTML mail option using the &quot;Send HTML email using the mimemail module?&quot; option under the node's connect settings tab.</p>
+
+
+<p><strong>Captcha</strong></p>
+<p>The connect module by default requires that a captcha be assigned to its forms. To set this up, enable and configure the captcha module. Make sure you enable the &quot;Add CAPTCHA adminstration links to forms&quot; option. As user 1, or another user enabled both to avoid captchas amd administer connect, view a connect campaign node. You will have the opportunity to add a captcha to the &quot;connect_form&quot; form ID. Once this is done, captcha will automatically handle adding the desired challenge and response to your connect module forms.</p>
+<p>It is possible to turn this requirement off in the admin settings for connect, but it it strongly discouraged, especially if you are setting up an email or fax campaign that could be the target of spam or DoS attacks.</p>

@@ -1,0 +1,13 @@
+; $Id: connect.info,v 1.6.2.1 2010/01/25 18:35:21 stevem Exp $
+name = Connect
+description = "Provides a flexible framework for creating one-to-many node relationships. Possible applications include petitions, event registration, and online email campaigns."
+core = 6.x
+dependencies[] = content
+package = Connect
+
+; Information added by drupal.org packaging script on 2010-02-28
+version = "6.x-2.x-dev"
+core = "6.x"
+project = "connect"
+datestamp = "1267358588"
+

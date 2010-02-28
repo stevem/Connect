@@ -1,0 +1,308 @@
+59001 | Abbotsford
+24046 | Abitibi - Baie-James - Nunavik - Eeyou
+24001 | Abitibi - Témiscamingue
+13001 | Acadie - Bathurst
+24002 | Ahuntsic
+35001 | Ajax - Pickering
+24003 | Alfred-Pellan
+35002 | Algoma - Manitoulin - Kapuskasing
+35003 | Ancaster - Dundas - Flamborough - Westdale
+24004 | Argenteuil - Papineau - Mirabel
+10001 | Avalon
+35004 | Barrie
+24054 | Bas-Richelieu - Nicolet - Bécancour
+47001 | Battlefords - Lloydminster
+35005 | Beaches - East York
+24005 | Beauce
+24006 | Beauharnois - Salaberry
+24007 | Beauport - Limoilou
+13002 | Beauséjour
+24008 | Berthier - Maskinongé
+47002 | Blackstrap
+10002 | Bonavista - Gander - Grand Falls - Windsor
+24009 | Bourassa
+35006 | Bramalea - Gore - Malton
+35007 | Brampton - Springdale
+35008 | Brampton West
+46001 | Brandon - Souris
+35009 | Brant
+59026 | British Columbia Southern Interior
+24010 | Brome - Missisquoi
+24011 | Brossard - La Prairie
+35026 | Bruce - Grey - Owen Sound
+35010 | Burlington
+59002 | Burnaby - Douglas
+59003 | Burnaby - New Westminster
+48005 | Calgary - Nose Hill
+48006 | Calgary Centre
+48003 | Calgary Centre-North
+48002 | Calgary East
+48004 | Calgary Northeast
+48007 | Calgary Southeast
+48008 | Calgary Southwest
+48009 | Calgary West
+35011 | Cambridge
+12001 | Cape Breton - Canso
+11001 | Cardigan
+59004 | Cariboo - Prince George
+35012 | Carleton - Mississippi Mills
+12002 | Central Nova
+24012 | Chambly - Borduas
+24013 | Charlesbourg - Haute-Saint-Charles
+46002 | Charleswood - St. James - Assiniboia
+11002 | Charlottetown
+24015 | Châteauguay - Saint-Constant
+35013 | Chatham-Kent - Essex
+24016 | Chicoutimi - Le Fjord
+59005 | Chilliwack - Fraser Canyon
+46003 | Churchill
+24017 | Compton - Stanstead
+48010 | Crowfoot
+12007 | Cumberland - Colchester - Musquodoboit Valley
+47004 | Cypress Hills - Grasslands
+12003 | Dartmouth - Cole Harbour
+46004 | Dauphin - Swan River - Marquette
+35015 | Davenport
+59006 | Delta - Richmond East
+47003 | Desnethé - Missinippi - Churchill River
+35016 | Don Valley East
+35017 | Don Valley West
+24018 | Drummond
+35018 | Dufferin - Caledon
+35014 | Durham
+48014 | Edmonton - Leduc
+48011 | Edmonton - Mill Woods - Beaumont
+48016 | Edmonton - Sherwood Park
+48017 | Edmonton - Spruce Grove
+48015 | Edmonton - St. Albert
+48018 | Edmonton - Strathcona
+48012 | Edmonton Centre
+48013 | Edmonton East
+35019 | Eglinton - Lawrence
+11003 | Egmont
+35020 | Elgin - Middlesex - London
+46005 | Elmwood - Transcona
+59008 | Esquimalt - Juan de Fuca
+35021 | Essex
+35023 | Etobicoke - Lakeshore
+35022 | Etobicoke Centre
+35024 | Etobicoke North
+59009 | Fleetwood - Port Kells
+48001 | Fort McMurray - Athabasca
+13003 | Fredericton
+13004 | Fundy Royal
+24019 | Gaspésie - Îles-de-la-Madeleine
+24020 | Gatineau
+35025 | Glengarry - Prescott - Russell
+35027 | Guelph
+35028 | Haldimand - Norfolk
+35029 | Haliburton - Kawartha Lakes - Brock
+12004 | Halifax
+12005 | Halifax West
+35030 | Halton
+35031 | Hamilton Centre
+35032 | Hamilton East - Stoney Creek
+35033 | Hamilton Mountain
+24041 | Haute-Gaspésie - La Mitis - Matane - Matapédia
+24021 | Hochelaga
+24022 | Honoré-Mercier
+24023 | Hull - Aylmer
+10003 | Humber - St. Barbe - Baie Verte
+35034 | Huron - Bruce
+24024 | Jeanne-Le Ber
+24025 | Joliette
+24026 | Jonquière - Alma
+59010 | Kamloops - Thompson - Cariboo
+59011 | Kelowna - Lake Country
+35035 | Kenora
+46006 | Kildonan - St. Paul
+12006 | Kings - Hants
+35036 | Kingston and the Islands
+35038 | Kitchener - Conestoga
+35039 | Kitchener - Waterloo
+35037 | Kitchener Centre
+59012 | Kootenay - Columbia
+24028 | La Pointe-de-l'Île
+10004 | Labrador
+24027 | Lac-Saint-Louis
+35046 | Lambton - Kent - Middlesex
+35040 | Lanark - Frontenac - Lennox and Addington
+59013 | Langley
+24029 | LaSalle - Émard
+24030 | Laurentides - Labelle
+24031 | Laurier - Sainte-Marie
+24032 | Laval
+24033 | Laval - Les Îles
+35041 | Leeds - Grenville
+48019 | Lethbridge
+24034 | Lévis - Bellechasse
+35042 | London - Fanshawe
+35043 | London North Centre
+35044 | London West
+24035 | Longueuil - Pierre-Boucher
+24036 | Lotbinière - Chutes-de-la-Chaudière
+24037 | Louis-Hébert
+24038 | Louis-Saint-Laurent
+48020 | Macleod
+13005 | Madawaska - Restigouche
+11004 | Malpeque
+24039 | Manicouagan
+24040 | Marc-Aurèle-Fortin
+35045 | Markham - Unionville
+48021 | Medicine Hat
+24042 | Mégantic - L'Érable
+13006 | Miramichi
+35047 | Mississauga - Brampton South
+35049 | Mississauga - Erindale
+35051 | Mississauga - Streetsville
+35048 | Mississauga East - Cooksville
+35050 | Mississauga South
+13007 | Moncton - Riverview - Dieppe
+24043 | Montcalm
+24058 | Montmagny - L'Islet - Kamouraska - Rivière-du-Loup
+24014 | Montmorency - Charlevoix - Haute-Côte-Nord
+24044 | Mount Royal
+59014 | Nanaimo - Alberni
+59015 | Nanaimo - Cowichan
+35052 | Nepean - Carleton
+13008 | New Brunswick Southwest
+59017 | New Westminster - Coquitlam
+35053 | Newmarket - Aurora
+59016 | Newton - North Delta
+35054 | Niagara Falls
+35055 | Niagara West - Glanbrook
+35056 | Nickel Belt
+35057 | Nipissing - Timiskaming
+59019 | North Vancouver
+35058 | Northumberland - Quinte West
+24045 | Notre-Dame-de-Grâce - Lachine
+62001 | Nunavut
+35059 | Oak Ridges - Markham
+35060 | Oakville
+59020 | Okanagan - Coquihalla
+59018 | Okanagan - Shuswap
+35061 | Oshawa
+35063 | Ottawa - Orléans
+35065 | Ottawa - Vanier
+35062 | Ottawa Centre
+35064 | Ottawa South
+35066 | Ottawa West - Nepean
+24047 | Outremont
+35067 | Oxford
+47005 | Palliser
+24048 | Papineau
+35068 | Parkdale - High Park
+35069 | Parry Sound - Muskoka
+48022 | Peace River
+35070 | Perth - Wellington
+35071 | Peterborough
+35072 | Pickering - Scarborough East
+24049 | Pierrefonds - Dollard
+59007 | Pitt Meadows - Maple Ridge - Mission
+24050 | Pontiac
+59021 | Port Moody - Westwood - Port Coquitlam
+46007 | Portage - Lisgar
+24051 | Portneuf - Jacques-Cartier
+47006 | Prince Albert
+35073 | Prince Edward - Hastings
+59022 | Prince George - Peace River
+46008 | Provencher
+24052 | Québec
+10005 | Random - Burin - St. George's
+48023 | Red Deer
+47007 | Regina - Lumsden - Lake Centre
+47008 | Regina - Qu'Appelle
+35074 | Renfrew - Nipissing - Pembroke
+24053 | Repentigny
+59023 | Richmond
+24055 | Richmond - Arthabaska
+35075 | Richmond Hill
+24056 | Rimouski-Neigette - Témiscouata - Les Basques
+24057 | Rivière-des-Mille-Îles
+24059 | Rivière-du-Nord
+24060 | Roberval - Lac-Saint-Jean
+24061 | Rosemont - La Petite-Patrie
+59024 | Saanich - Gulf Islands
+12008 | Sackville - Eastern Shore
+46009 | Saint Boniface
+13009 | Saint John
+24062 | Saint-Bruno - Saint-Hubert
+24063 | Saint-Hyacinthe - Bagot
+24064 | Saint-Jean
+24065 | Saint-Lambert
+24066 | Saint-Laurent - Cartierville
+24067 | Saint-Léonard - Saint-Michel
+24068 | Saint-Maurice - Champlain
+35078 | Sarnia - Lambton
+47009 | Saskatoon - Humboldt
+47010 | Saskatoon - Rosetown - Biggar
+47011 | Saskatoon - Wanuskewin
+35079 | Sault Ste. Marie
+35080 | Scarborough - Agincourt
+35082 | Scarborough - Guildwood
+35083 | Scarborough - Rouge River
+35081 | Scarborough Centre
+35084 | Scarborough Southwest
+46010 | Selkirk - Interlake
+24069 | Shefford
+24070 | Sherbrooke
+35085 | Simcoe - Grey
+35086 | Simcoe North
+59025 | Skeena - Bulkley Valley
+47012 | Souris - Moose Mountain
+12009 | South Shore - St. Margaret's
+59027 | South Surrey - White Rock - Cloverdale
+35076 | St. Catharines
+10006 | St. John's East
+10007 | St. John's South - Mount Pearl
+35077 | St. Paul's
+35087 | Stormont - Dundas - South Glengarry
+35088 | Sudbury
+59028 | Surrey North
+12010 | Sydney - Victoria
+24071 | Terrebonne - Blainville
+35089 | Thornhill
+35090 | Thunder Bay - Rainy River
+35091 | Thunder Bay - Superior North
+35092 | Timmins - James Bay
+13010 | Tobique - Mactaquac
+35094 | Toronto - Danforth
+35093 | Toronto Centre
+35095 | Trinity - Spadina
+24072 | Trois-Rivières
+59029 | Vancouver Centre
+59030 | Vancouver East
+59031 | Vancouver Island North
+59032 | Vancouver Kingsway
+59033 | Vancouver Quadra
+59034 | Vancouver South
+24073 | Vaudreuil-Soulanges
+35096 | Vaughan
+48024 | Vegreville - Wainwright
+24074 | Verchères - Les Patriotes
+59035 | Victoria
+47013 | Wascana
+35097 | Welland
+35098 | Wellington - Halton Hills
+12011 | West Nova
+59036 | West Vancouver - Sunshine Coast - Sea to Sky Country
+61001 | Western Arctic
+48025 | Westlock - St. Paul
+24075 | Westmount - Ville-Marie
+48026 | Wetaskiwin
+35099 | Whitby - Oshawa
+48027 | Wild Rose
+35100 | Willowdale
+35101 | Windsor - Tecumseh
+35102 | Windsor West
+46011 | Winnipeg Centre
+46012 | Winnipeg North
+46013 | Winnipeg South
+46014 | Winnipeg South Centre
+48028 | Yellowhead
+35104 | York - Simcoe
+35103 | York Centre
+35105 | York South - Weston
+35106 | York West
+47014 | Yorkton - Melville
+60001 | Yukon

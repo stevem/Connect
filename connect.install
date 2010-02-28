@@ -1,0 +1,110 @@
+<?php
+// $Id: connect.install,v 1.2.2.1 2010/01/25 18:35:21 stevem Exp $
+
+/**
+ * @file
+ * Installation and update code for connect.module
+ * 
+ */
+
+/**
+ * Implementation of hook_schema().
+ */
+function connect_schema() {
+  $schema['connect_data'] = array(
+    'description' => 'Holds parent-child relationships.',
+    'fields' => array(
+      'id' => array(
+        'description' => 'unique parent-child record ID',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'nid' => array(
+        'description' => 'child node ID',
+        'type' => 'int',
+        'size' => 'normal',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'pid' => array(
+        'description' => 'parent node ID',
+        'type' => 'int',
+        'size' => 'normal',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'child_nid'  => array('nid'),
+      'parent_nid' => array('pid'),
+    ),
+    'primary key' => array('id'),
+  );
+  
+  $schema['connect_cache'] = array(
+    'description' => 'Holds cached lookup data.',
+    'fields' => array(
+      'id' => array(
+        'description' => 'unique cache item ID',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'type' => array(
+        'description' => 'cache type',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'source' => array(
+        'description' => 'lookup data',
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'target' => array(
+        'description' => 'cached data',
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'created' => array(
+        'description' => 'timestamp',
+        'type' => 'int',
+        'size' => 'normal',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'cache_source'  => array('source'),
+    ),
+    'primary key' => array('id'),
+  );
+        
+  return $schema;
+}
+
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function connect_uninstall() {
+  drupal_uninstall_schema('connect');
+  db_query('DELETE FROM {variable} WHERE name LIKE \'connect_%\';');
+}
+
+
+/**
+ * Implementation of hook_install().
+ */
+function connect_install() {  
+  drupal_install_schema('connect');
+}

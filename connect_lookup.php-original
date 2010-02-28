@@ -1,0 +1,452 @@
+<?php
+
+/**
+ * interface function for returning lookup description or data
+ */
+function connect_target_lookup($op = 'lookup', $parent = NULL, $child = NULL, $type = '') {
+  $return = false;
+  if ( $parent && $type ) {
+    $lookup = connect_node_options( $parent->nid, $type.'_lookup_type' );
+    if ($lookup) {
+      eval('$return = '.$lookup.'($op, $parent, $child);');
+    }
+  }
+  return $return;
+}
+
+
+/*
+ * connect_lookup_NAME( $op = 'lookup', $child )
+ *
+ * @ param $op
+ * 'lookup' -> perform the lookup
+ * 'requires' -> get info to pass through via connect_action_hook function
+ * 'describe' -> returns a title to display on the node settings form
+ * 'cache' -> returns an array of descriptors for the cache table
+ *
+ * @ return
+ * if $op=='lookup': object( object->email object->name object->fax, etc )
+ * if $op=='requires' : array as per connect_action_* 'requires' op
+ * if $op=='describe' : string describing the function
+ * of $op=='cache' : array describing the connet_cache items this lookup can/may use
+ */
+
+
+/*
+ *  function to look up contact info for Canadian MP -- basic lookup from Postal Code
+ *
+ *  uses the OpenConcept Consulting web service at http://makethechange.ca/
+ *  which requires a client key
+ *
+ */
+function connect_lookup_mp($op = 'lookup', &$parent, &$child) {
+  switch ($op) {
+    case 'describe' :
+      return 'Canadian MP (postal code)';
+      break;
+
+    case 'cache' :
+      return array(
+        'EDID2MP' => 'Federal riding to MP',
+        'postalcode2riding' => 'Postal code to Federal riding'
+      );
+      break;
+
+    case 'requires':
+      $return['variables']  = array(
+        'makethechange_key' => array(
+          '#type'  => 'textfield',
+          '#title' => 'Makethechange web service key',
+          '#default_value' => connect_node_options($parent->nid, 'makethechange_key'),
+          '#required' => TRUE,
+        ),
+        'mp_lookup_cache' => array(
+          '#type'  => 'radios',
+          '#title' => 'Cache the lookup data?',
+          '#options' => array( 'no' => 'No', 'yes' => 'Yes'),
+          '#default_value' => connect_node_options($parent->nid, 'mp_lookup_cache'),
+          '#required' => TRUE,
+        ),
+      );
+      
+      $return['child']  = array(
+        'postal_code' => 'Postal code',
+        'lookup_mp_data_edid' => 'Riding',
+      );
+      return $return;
+
+    case 'validate' :
+      $code = connect_value( 'postal_code', $parent, $child, 'child' );
+      if ( !connect_is_postalcode($code) ) {
+        form_set_error('', 'Please enter a valid postal code.');
+      }
+      break;
+
+    case 'lookup':
+      $return     = array();
+      $use_cache  = (connect_node_options($parent->nid, 'mp_lookup_cache') == 'yes');
+      $mtc_key    = connect_node_options($parent->nid, 'makethechange_key');
+      $postalcode = connect_value('postal_code', $parent, $child, 'child');
+      $edid       = _connect_get_riding($mtc_key, $postalcode, 'federal', 'federal', $use_cache);
+      if ($edid) {
+        // save the riding in the child node
+        connect_value('lookup_mp_data_edid', $parent, $child, 'child', $edid[0]['id']);
+        
+        /* Danger! in rare cases there may be > 1 matches: this
+         * just grabs the first one; if this is a problem,
+         * use the CCK MPautocomplete version to allow users to select a riding
+         * or write a two-stage version of the participation form
+         */
+        $mp = _connect_get_MP_by_EDID($mtc_key, $edid[0]['id'], $use_cache);      
+        if (!empty($mp)){
+          $return['name']  = $mp->mp_name;
+          $return['email'] = $mp->email;
+          $return['fax']   = $mp->fax;
+        }
+        else {
+          watchdog('connect', "connect_lookup_mp: MP not found for $edid[0][id]");
+        }
+      }
+      else {
+        watchdog('connect', "connect_lookup_mp: EDID not found for $postalcode");
+      }
+      
+      return $return;
+      break;
+  }
+}
+
+/*
+ *  function to look up contact info for Canadian MP -- Autocomplete version
+ * requires MP autocomplete and riding selection fields
+ *
+ *  uses the OpenConcept Consulting web service at http://makethechange.ca/
+ *  which requires a client key
+ *
+ */
+function connect_lookup_mp_autocomplete($op='lookup', &$parent, &$child) {
+  switch ($op) {
+    case 'describe' :
+      return 'Canadian MP (autocomplete + riding list)';
+      break;
+
+    case 'requires':    
+      $return['variables']  = array(
+        'makethechange_key' => array(
+          '#type'  => 'textfield',
+          '#title' => 'Makethechange web service key',
+          '#default_value' => connect_node_options( $parent->nid, 'makethechange_key' ),
+          '#required' => TRUE,
+        ),
+        'mp_autocomplete_lookup_cache' => array(
+          '#type'  => 'radios',
+          '#title' => 'Cache the lookup data?',
+          '#options' => array( 'no' => 'No', 'yes' => 'Yes'),
+          '#default_value' => connect_node_options( $parent->nid, 'mp_autocomplete_lookup_cache'),
+          '#required' => TRUE,
+        ),
+      );
+      $return['child']  = array(
+        'riding_auto' => 'MP autocomplete field',
+        'riding_list' => 'Riding list (to be selected if autocomplete fails)',
+      );
+      return $return;
+
+    case 'cache' :
+      return array(
+        'EDID2MP' => 'Federal riding to MP',
+        'postalcode2riding' => 'Postal code to Federal riding'
+      );
+      break;
+      
+    case 'validate' :
+      $map  = connect_get_map($parent->nid);
+      $riding_auto = $child[$map['riding_auto']][0]['value'];
+      $riding_list = $child[$map['riding_list']]['key'];
+      if ( empty($riding_auto) && empty($riding_list) ) {
+        form_set_error('', 'Please enter your postal code or select your riding from the list.');
+      }
+      break;
+
+    case 'lookup':
+      $edid = 0;
+      $use_cache  = (connect_node_options($parent->nid, 'mp_autocomplete_lookup_cache') == 'yes');
+      $riding_auto = connect_value( 'riding_auto', $parent, $child, 'child' );
+      $riding_list = connect_value( 'riding_list', $parent, $child, 'child' );
+      if ( !empty($riding_list) ) {
+        $edid = (int) $riding_list;
+      }
+      if ( $edid == 0 && !empty($riding_auto) ) {
+        list($id,$discard) = sscanf($riding_auto, "%d | %s");
+        $edid = (int) $id;
+      }
+
+      // do the lookup
+      if ( is_numeric($edid) ) {
+        $mtc_key = connect_node_options( $parent->nid, 'makethechange_key' );
+        $mp = _connect_get_MP_by_EDID( $mtc_key, $edid, $use_cache);
+        if ($mp ){
+          $return['name']  = $mp->mp_name;
+          $return['email'] = $mp->email;
+          $return['fax']   = $mp->fax;
+          return $return;
+        }
+      } else {
+        die('problem!');
+      }
+      return null;
+  }
+}
+
+/*
+ *  function to look up contact info for Ontario MPP
+ *
+ *  uses the OpenConcept Consulting web service at http://makethechange.ca/
+ *  which requires a client key
+ *
+ */
+/*
+function connect_lookup_on_mpp(&$participant) {
+  // validate postal code
+  $code = $participant->field_postal_code[0][value];
+  if (! connect_is_postalcode($code)) {
+    form_set_error('', t('There was a problem with the form data.'));
+    return false;
+  }
+
+  // lookup MPP info
+  $service_key = connect_get_service_key();
+
+  // cacheable
+  $cached_address = cache_get('on_mpp_' . $code, 'cache_connect');
+  if ($cached_address) {
+    return $cached_address;
+  }
+
+  $get_url     = "http://makethechange.ca/provincial/on_riding.php?key=".urlencode($service_key)."&pc=".urlencode($code) . "&type=csv";
+
+  $fh = fopen($get_url, "r") or watchdog('debug','fopen failed: ' . $get_url );
+  $mpp_address = fread($fh, 200) or watchdog('debug','fread failed: ' . $get_url );
+  fclose($fh);
+
+  if (strpos($mpp_address, 'Error:')) {
+    $mpp_address = false;
+  }
+  cache_set('on_mpp_' . $code, 'cache_connect',  $mpp_address, CACHE_PERMANENT);
+  return $mpp_address;
+}
+*/
+
+
+/*****  Makethechange functions *****/
+
+// MP lookup using EDID
+function _connect_get_MP_by_EDID($service_key = NULL, $edid = NULL, $use_cache = FALSE) {
+  if (is_numeric($edid)) {
+    // cached value?
+    if ($use_cache) {
+      $cached = _connect_cached_value('EDID2MP', $edid);
+      if (!empty($cached)) {
+      drupal_set_message( '_connect_get_MP_by_EDID cache hit' );
+        return $cached;
+      }
+    }
+
+    // do lookup
+    if ($service_key) {
+      _connect_json_support();  // make sure we have JSON support
+      $mp_url  = 'http://makethechange.ca/federal/riding.php?type=json&key='.urlencode($service_key).'&edid='.$edid;
+      $fh = fopen($mp_url, "r") or watchdog('debug','fopen failed: ' . $mp_url );
+      $mp_info = fread($fh, 8192) or watchdog('debug','fread failed: ' . $mp_url );
+      fclose($fh);
+      if (!empty($mp_info)) {
+        if (!strpos($mp_info, 'Error:')) {
+          $return  = json_decode(trim($mp_info));
+          if ($use_cache) {
+            $cached = _connect_cached_value('EDID2MP', $edid, $return);
+            drupal_set_message( '_connect_get_MP_by_EDID cache set' );
+          }
+          return $return;
+        }
+        else {
+          watchdog('connect', "get_MP_by_EDID $mp_info");
+        }
+      }
+      else {
+        watchdog('connect', "get_MP_by_EDID lookup returned empty MP data for $edid");
+      }
+    }
+  }
+  
+  // parameter and lookup errors fall through here
+  watchdog('connect', "get_MP_by_EDID missing EDID or service key");
+  return NULL;
+}
+
+
+/*
+ *  generic riding lookup
+ *
+ *  @parameters
+ *    postalcode (string)
+ *    scope (string)  : 'federal'|'provincial'
+ *    detail (string) : 'ontario', 'ottawa', etc.
+ *
+ *  @return
+ *    (array) of riding info = array( 'id'=>'', 'en'=>'', 'fr'=>'' )
+ *
+ *   TODO - fix the web service API.
+ *
+ */
+function _connect_get_riding($service_key = NULL, $postalcode = NULL, $scope='federal', $detail = 'federal', $use_cache = FALSE) { 
+  // verify and normalize postalcode format
+  if (!connect_is_postalcode($postalcode)) {
+    return;
+  }
+  $postalcode = strtoupper(preg_replace('/\s/', '', $postalcode));
+  $return = FALSE;
+  
+  // cached value?
+  if ($use_cache) {
+    $cached = _connect_cached_value('postalcode2riding', $postalcode);
+    if(!empty($cached)) {
+      drupal_set_message( '_connect_get_riding cache hit' );
+      return $cached;
+    }
+  }
+
+  // look up data, if not found in cache
+  // determine lookup URI based on type of lookup
+  $scope_function = array (
+    'federal'    => array ( 'federal' => 'pc2csv/index' ),
+    'provincial' => array ( 'ontario' => 'provincial/on_riding' ),
+    'municipal'  => array (),
+  );
+
+  if ( $service_key && isset($scope_function[$scope][$detail]) ) {
+    $riding_url  = 'http://makethechange.ca/' .$scope_function[$scope][$detail]. '.php?key='.urlencode($service_key).'&pc='.urlencode($postalcode).'&type=riding';
+    $fh = fopen($riding_url, "r") or watchdog('debug','fopen failed: ' . $riding_url );
+    $riding_data = fread($fh, 200) or watchdog('debug','fread failed: ' . $riding_url );
+    fclose($fh);
+  }
+
+  // if there are results, walk through them and create an array of arrays
+  if (!empty($riding_data)) {
+    $row_token = strtok($riding_data, "\n");
+    while ($row_token != false) {
+      $return[] = connect_riding_data($row_token);
+      $row_token = strtok("\n");
+    }
+
+    // cache, if desired
+    if ($use_cache) {
+      $cached = _connect_cached_value('postalcode2riding', $postalcode, $return);
+      drupal_set_message( '_connect_get_riding cache set' );
+    }
+  }
+
+  return $return;
+}
+
+
+// turns riding data returned from web service into an indexed array
+function connect_riding_data($data = NULL) {
+  $return     = null;
+  $array_keys = array('id','en','fr');
+  $array_temp = explode(',',$data);
+  for ($i = 0; $i < count($array_temp); $i++) {
+    $return[$array_keys[$i]] = trim( $array_temp[$i] );
+  }
+  return $return;
+}
+
+
+
+/**** Utility functions ****/
+
+
+/*
+ *  Determine available target lookup types, return in select list format
+ */
+function connect_get_lookup_types($select = FALSE) {
+  static $return = array();
+  $empty = array();
+  if (empty($return) ) {
+    $functions = get_defined_functions();
+    $array = $functions['user'];
+    foreach ($array as $key=>$name ) {
+      if (strpos($name, 'connect_lookup_') !== FALSE ) {
+        eval( '$label = '.$name.'(\'describe\', $empty, $empty);' );
+        $return[$name] = $label;
+      }
+    }
+    $return[0] = '';
+    asort($return);
+  }
+  return $return;
+}
+
+/*
+ *  Wrappers for JSON support if this version/install of PHP
+ *  doesn't support it natively
+ * 
+ *  Thanks to http://abeautifulsite.net/notebook/71
+ *  JSON library from http://mike.teczno.com/json.html
+ */
+function _connect_json_support() {
+  if (!function_exists('json_encode')) {
+    require_once('JSON.php');  
+    function json_encode($data) {
+      $json = new Services_JSON();
+      return($json->encode($data));
+    }
+  }
+
+  if (!function_exists('json_decode')) {
+    require_once('JSON.php');  
+    function json_decode($data) {
+      $json = new Services_JSON();
+      return($json->decode($data));
+    }
+  }
+}
+
+// check the connect cache for a saved value for a lookup
+// if no third param = getter; third value = setter
+function _connect_cached_value($type = NULL, $source = NULL, $value = NULL) {  
+  $return = FALSE;
+  if ($type && $source) {
+    if (!$value) {
+      $sql = "SELECT target from {connect_cache} WHERE type='%s' AND source = '%s';";
+      $result = db_query($sql, $type, $source);
+      if ($row = db_fetch_object($result)) {
+        $return = unserialize($row->target);
+      }
+    }
+    else {
+      // delete
+      $sql = "DELETE from {connect_cache} WHERE type='%s' AND source = '%s';";
+      $result = db_query($sql, $type, $source);
+      //insert
+      $sql = "INSERT INTO {connect_cache} (type, source, target, created) VALUES('%s', '%s', '%s', %d);";
+      $result = db_query($sql, $type, $source, serialize($value), time());
+      $return = $result;
+    }
+  }
+  return $return;
+}
+
+// return names for cached items
+function _connect_get_cache_names() {
+  $cache_names = array();
+  $lookup_types = connect_get_lookup_types(TRUE);
+  unset($lookup_types[0]);
+  $empty = array();
+  foreach ($lookup_types as $key=>$title) {
+    if (function_exists($key)) {
+      eval('$temp = ' . $key . '(\'cache\', $empty, $empty);');
+      $cache_names = array_merge($cache_names, $temp);
+    }
+  }
+  return array_unique($cache_names);
+}

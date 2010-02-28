@@ -1,0 +1,354 @@
+<?php
+// $Id: connect_civicrm.module,v 1.1.2.2 2010/02/28 01:39:38 stevem Exp $
+
+
+/*
+ * Implementation of hook_connect
+ **/
+function connect_civicrm_connect() {
+	$actions = array(
+		'connect_civicrm_add_participants' => array(
+		  'title' 		=> 'CiviCRM: add participants',
+		  'desc'  		=> 'Saves participant information to CiviCRM.',
+		),
+}
+
+
+/**
+ *  Saves participant data to CiviCRM
+ */
+function connect_civicrm_add_participants(&$parent, &$child, $op='', $target='child') {
+  if (!module_exists('civicrm')) return;
+
+  switch ($op) {
+    case 'requires' :
+      $return = array();
+      $return['child']  = array(
+        'civicrm_contact_id' => 'CiviCRM contact ID.',
+      );
+
+      // store CiviCRM mapping in options rather than child variable map
+      // because not all are required
+      $child_type  = connect_node_options($parent->nid, 'participant_type');
+      $cck_options = _connect_get_child_fields($child_type);
+      if (!empty($cck_options)) {
+        $return['variables']['civicrm_participants_intro'] = array(
+          '#value' => t('Select the participant/child fields that match the given CiviCRM fields. First and last name and email are required.'),
+        );
+        $crm_vars = connect_civicrm_properties_options();
+        foreach ($crm_vars as $key => $name) {
+          $return['variables']["civicrm_participants_$key"] = array(
+            '#type'    => 'select',
+            '#title'   => $name,
+            '#options' => $cck_options,
+            '#default_value' => connect_node_options($parent->nid, "civicrm_participants_$key"),
+          );
+        }
+
+        // add link to allow rebuilding cck->crm info
+        $return['variables']['civicrm_participants_sync'] = array(
+          '#value' => '<p>' . l('Sync CiviCRM records', 'connect/admin/civicrm_sync/'. $parent->nid) . '</p>',
+          '#description' => 'Use this link to update the CiviCRM records from the participant data.',
+         );
+      }
+      else {
+        $return['variables']['civicrm_participants_message'] = array(
+          '#value' => t('Please select a participant type and return here to set up your variables.'),
+        );
+      }
+      return $return;
+
+    case 'menu' :
+      $return = array(
+        'connect/civicrm_sync' => array(
+          'title' => 'CiviCRM sync',
+          'callback' => '_connect_civicrm_update',
+          'type' => MENU_CALLBACK,
+          'access' => user_access('administer civicrm'),
+        ),
+      );
+      return $return;
+      break;
+
+    case 'validate' :
+      if ($target != 'child') {
+        return;
+      }
+      $required = array('email' => 'Email address', 'first_name' => 'First name', 'last_name' => 'Last name');
+      foreach ($required as $key => $name) {
+        $var  = connect_node_options($parent->nid, "civicrm_participants_$key");
+        $path = _connect_get_field_path($child, $var);
+        if (empty($var) || empty($path)) {
+          form_set_error('', t('There is a problem with the parent node configuration. Please contact the site administrator.'));
+          return;
+        }
+        eval('$field_value = $child'. $path .';');
+        if ($key == 'email') {
+          if (!_connect_valid_email($field_value)) {
+            form_set_error($var, "$name must be a valid address.");
+          }
+        }
+        elseif (empty($field_value)) {
+          form_set_error($var, "$name is required");
+        }
+      }
+      break;
+
+    case 'insert' :
+      if ($target != 'child') {
+        return;
+      }
+      civicrm_initialize();
+      require_once('api/v2/Contact.php');
+      require_once('api/v2/Group.php');
+      require_once('api/v2/GroupContact.php');
+
+      // grab CRM data from child node
+      $crm_params = array();
+      $options    = connect_node_options($parent->nid);
+      $regex      = '/^civicrm_participants_(.*)$/';
+      foreach ($options as $option => $field_name) {
+        if (!empty($field_name) && preg_match($regex, $option, $matches) == 1) {
+          $crm  = $matches[1];
+          $path = _connect_get_field_path($child, $field_name);
+          eval('$field_value = $child'. $path .';');
+          if (!empty($field_value)) {
+            $crm_params[$crm] = $field_value;
+          }
+        }
+      }
+
+      // update or create contact
+      if (!empty($crm_params)) {
+        $crm_params['contact_type'] = 'Individual';
+        $contact = civicrm_contact_add($crm_params);
+        $params = array(
+          'contact_id' => $contact['contact_id'],
+          'return.contact_id' => 1,
+          'return.display_name' => 1,
+          'return.postal_code' => 1,
+       );
+        $retrieved = &civicrm_contact_search($params);
+        
+        if (!civicrm_error($retrieved)) {
+          // save contact ID in cck record
+          connect_value('civicrm_contact_id', $parent, $child, 'child', $contact['contact_id']);
+          node_save($child);
+
+          // add contact to group
+          $group_id = _connect_civicrm_group_id($parent);
+          if (!empty($group_id)) {
+            $params = array('group_id' => $group_id, 'contact_id' => $contact['contact_id']);
+            $result = civicrm_group_contact_add($params);
+            if ($result['is_error']) {
+              watchdog('connect_civicrm', "civicrm_participants: $contact[contact_id] not added to group $group_id", array(), WATCHDOG_DEBUG);
+            }
+          }
+        }
+        else {
+          watchdog('connect_civicrm', 'civicrm_participants: CiviCRM record not created: '. $participant->nid, array(), WATCHDOG_DEBUG);
+        }
+      }
+      else {
+        watchdog('connect_civicrm', 'civicrm_participants: CiviCRM params empty: '. $participant->nid, array(), WATCHDOG_DEBUG);
+      }
+  }
+}
+
+function _connect_civicrm_group_id(&$parent) {
+  civicrm_initialize();
+  require_once('api/v2/Group.php');
+
+  $params = array(
+    'name'  => $parent->title, 
+    'title' => $parent->title, 
+  );
+  $groups = civicrm_groups_get($params);
+
+  // group exists = return ID
+  if (!civicrm_error($groups)) {
+    $keys = array_keys($groups);
+    $group_id = $keys[0];
+  }
+  // otherwise, create group and return ID
+  else {
+    $params['is_active'] = 1; 
+    $params['visibility'] = 'User and User Admin Only';
+    $result = civicrm_group_add($params);
+    if (!civicrm_error($result)) {
+      $group_id = $result['result'];
+    }
+    else {
+      $group_id = 0;
+      watchdog('connect_civicrm', 'CiviCRM group not created: '. $params['name'] .' error '. $result['result'], array(), WATCHDOG_DEBUG);
+    }
+  }
+  
+  return $group_id;
+}
+
+
+// makes sure all participant nodes have been added to CiviCRM
+// and updates them with current Drupal node data
+function _connect_civicrm_update($parent_nid = NULL) {
+  drupal_set_title(t('Connect: update CiviCRM contacts'));
+  $parent = node_load($parent_nid);
+  $output = '';
+  
+  civicrm_initialize();
+  require_once('api/v2/Contact.php');
+  require_once('api/v2/Group.php');
+  require_once('api/v2/GroupContact.php');
+  require_once('api/v2/Location.php');
+
+  if (!$parent) {
+    $output = '<p>There was a problem determining the parent node id. Please try again.</p>';
+  }
+  else {
+    $total   = 0;
+    $success = 0;
+    $created = 0;
+    $updated = 0;
+    $errors  = 0;
+    $names   = '';
+    $sql     = 'SELECT nid from {connect_data} where pid=%d;';
+    $result  = db_query($sql, $parent->nid);
+    while ($row = db_fetch_object($result)) {
+      $total++;
+      $params_preset = array(
+        'contact_type'  => 'Individual',
+        'location_type_id' => 1,
+     );
+      $child      = node_load($row->nid);
+      $contact_id = connect_value('civicrm_contact_id', $parent, $child, 'child');
+
+      // if the contact exists, put the id in $params to force an update
+      if ($contact_id) {
+        $is_new = FALSE;
+        $params = array('contact_id' => $contact_id);
+        $retrieved = civicrm_contact_get($params);
+        if (!civicrm_error($retrieved)) {
+          $params_preset['contact_id'] = $contact_id;
+          $updated++;
+        }
+        else {
+          $errors++;
+          watchdog('connect_civicrm', "civicrm_update: CiviCRM ID $contact_id could not be retrieved for update", array(), WATCHDOG_DEBUG);
+          continue;
+        }
+      }
+      // or create a new contact
+      else {
+        $is_new = TRUE;
+        $created++;
+      }
+
+      // update / create the record
+      $params_auto = _connect_civicrm_contact_params($parent, $child);
+      $params      = array_merge($params_preset, $params_auto);
+      $contact     = civicrm_contact_add($params);      
+      if (!civicrm_error($contact)) {
+        $success++;
+        $names .= "$params[display_name]<br />";
+        if ($is_new) {
+          // record ID in child node
+          $discard_me = connect_value('civicrm_contact_id', $parent, $child, 'child', $contact['contact_id']);
+          node_save($child);
+
+          // save address
+          $params   = array_merge($params_preset, $params_auto); 
+          unset($params['email']); 
+          $location = civicrm_location_add($params);
+
+          // add to group
+          $group_id = _connect_civicrm_group_id($parent);
+          if (!empty($group_id)) {
+            $params = array('group_id' => $group_id, 'contact_id' => $contact['contact_id']);
+            $result = civicrm_group_contact_add($params);
+            if ($result['is_error']) {
+              watchdog('connect_civicrm', "civicrm_update: $contact[contact_id] not added to group $group_id", array(), WATCHDOG_DEBUG); 
+            }
+          }
+        }
+        else {
+          // update address
+          $params   = array_merge($params_preset, $params_auto);
+          unset($params['email']);
+          $location = civicrm_location_update($params);
+        }
+      }
+      else {
+        $errors++;
+        watchdog('connect_civicrm', 'civicrm_update: "' . $contact['error_message'] . '" for child nid ' . $row->nid, array(), WATCHDOG_DEBUG);
+      }
+    }
+  }
+  $output .= "<p>$total participants scanned</p>";
+  $output .= "<p>$created participants added</p>";
+  $output .= "<p>$updated participants updated</p>";
+  $output .= "<p>$success participants successful</p>";
+  $output .= "<p>$errors errors</p>";
+  $output .= "<div>$names</div>";
+  return $output;
+}
+
+
+function _connect_civicrm_contact_params(&$parent, &$child) {
+  // grab CRM data from child node
+  $crm_params = array();
+  $options    = connect_node_options($parent->nid);
+  $regex      = '/^civicrm_participants_(.*)$/';
+  foreach ($options as $option => $field_name) {
+    if (!empty($field_name) && preg_match($regex, $option, $matches) == 1) {
+      $crm  = $matches[1];
+      $path = _connect_get_field_path($child, $field_name);
+      eval('$field_value = $child'. $path .';');
+      if (!empty($field_value)) {
+        $crm_params[$crm] = $field_value;
+      }
+    }
+  }
+  return $crm_params;
+}
+
+
+// the civicrm API doesn't produce very helpful output
+// so many of these have to be set manually
+function connect_civicrm_properties_options() {
+  civicrm_initialize(TRUE);
+
+  $return = array('first_name' => 'First Name',
+                   'middle_name' => 'Middle Name',
+                   'last_name' => 'Last Name',
+                   'home_URL' => 'URL',
+                   'street_address' => 'Address',
+                   'city' => 'City',
+                   'state_province' => 'State/Province',
+                   'postal_code' => 'Postal Code',
+                   'email' => 'Email address',
+                 );
+
+  /*
+  $get_types = array('Individual','Location');
+  foreach ($get_types as $type) {
+    $fields = crm_get_class_properties($type, 'custom');
+    foreach ($fields as $field) {
+      $return[$field['name']] = $field['description'];
+    }
+  }
+  */
+
+  // add the easy-to-manage CiviCRM custom fields (no enums)
+  // TODO : use mapping custom_ID_html_type to handle different types of data
+  /*
+  if (class_exists('CRM_Core_DAO_CustomField')) {
+    $DAO =& new CRM_Core_DAO_CustomField;
+    $DAO->html_type = 'text';
+    $DAO->find();
+    while ($DAO->fetch()) {
+      $return['custom_'.$DAO->id] = $DAO->label;
+    }
+  }
+  */
+  return $return;
+}

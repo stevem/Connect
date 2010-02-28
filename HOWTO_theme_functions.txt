@@ -1,0 +1,80 @@
+/*
+ *  connect.module theme functions
+ *
+ *  to customize the display of connect forms,
+ *  add the phptemplate_connect_form and phptemplate_connect_form_block functions
+ *  (below) to your theme's template.php file
+ * 
+ *  then, to control the display of forms for various types of participant,
+ *  add functions called _phptemplate_connect_NODETYPE_DISPLAYTYPE
+ *  where NODETYPE is the machine-readable name of the participant node type
+ *  and DISPLAYTYPE is 'block' or 'page'
+ *  ('block' forms are provided only if you turn on the "Provide a block" function in the campaign page)
+ *
+ *  examples are provided for a simple "participant_signon" node type
+ */
+
+/*  allow theming of connect forms presented on the page */
+function phptemplate_connect_form($form) {
+  $type = $form['participant_type']['#value'];
+  if (!empty($type)) {
+    $theme_function = "_phptemplate_connect_page_$type";
+    if (function_exists($theme_function)) {      
+      $return = call_user_func($theme_function, $form);
+      return $return;
+    }
+  }
+}
+
+/*  allow theming of connect forms presented in blocks */
+function phptemplate_connect_form_block($form) {
+  $type = $form['participant_type']['#value'];
+  if (!empty($type)) {
+    $theme_function = "_phptemplate_connect_block_$type";
+    if (function_exists($theme_function)) {      
+      $return = call_user_func($theme_function, $form);
+      return $return;
+    }
+  }
+}
+
+/* connect forms using the participant_email node type */
+
+// alter form for page display
+function _phptemplate_connect_page_participant_signon(&$form) {
+  $form['field_contact_name']['0']['value']['#size'] = 50;
+  $form['field_contact_email']['0']['email']['#size'] = 40;
+  $form['field_postalcode']['0']['value']['#size'] = 10;
+
+  // use a common rendering function
+  // one could instead select and render form items here
+  return _phptemplate_connect_participant_signon($form, 'page');
+}
+
+// alter form for block display
+function _phptemplate_connect_block_participant_signon(&$form) {
+  $form['field_contact_name'][0]['value']['#size'] = 20;
+  $form['field_contact_email'][0]['email']['#size'] = 20;
+  $form['field_postalcode']['0']['value']['#size'] = 10;
+  
+  // use a common rendering function
+  // one could instead select and render form items here
+  return _phptemplate_connect_participant_signon($form, 'block');
+}
+
+// display form
+function _phptemplate_connect_participant_signon(&$form, $type = 'page') {
+  // default rendering (comment this out to add or remove elements)
+  return drupal_render($form);
+
+  // selected rendering, using template files
+  $form_items = array(
+    'field_contact_name',
+    'field_contact_email',
+    'field_postalcode',
+    'submit',
+  );
+  foreach ($form_items as $item) {
+    $template_variables[$item] = drupal_render($form[$item]);
+  }  return _phptemplate_default('connect_' . $type . '_participant_signon', $template_variables);
+}

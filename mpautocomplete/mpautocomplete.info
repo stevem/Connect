@@ -1,0 +1,15 @@
+; $Id: mpautocomplete.info,v 1.2.2.1 2010/02/25 21:55:18 stevem Exp $
+name = MP Autocomplete Widget
+description = Provides an autocomplete CCK widget for looking up Canadian MPs using makethechange.ca
+dependencies[] = content  
+dependencies[] = text 
+dependencies[] = connect
+package = Connect
+core = 6.x
+
+; Information added by drupal.org packaging script on 2010-02-28
+version = "6.x-2.x-dev"
+core = "6.x"
+project = "connect"
+datestamp = "1267358588"
+

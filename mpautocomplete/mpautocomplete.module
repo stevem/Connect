@@ -1,0 +1,267 @@
+<?php
+
+/*
+ *
+ * cache data locally
+ * only take full postal codes as data entry
+ * check cache first, then web service
+ *
+ * NB autocomplete not compatible with caching approach
+ *
+ */
+
+
+/*
+ * implementation of hook_connect_lookup
+ */
+function mpautocomplete_connect_lookup() {
+	$lookups = array(
+    'mpautocomplete_lookup' => 'Canadian MP (autocomplete + riding list)',
+  );
+  return $lookups;
+}
+
+
+function mpautocomplete_menu($may_cache) {
+  $items = array();
+
+	$items['text/mpautocomplete'] = array(
+		'type' => MENU_CALLBACK);
+		'title' => 'custom text autocomplete',
+		'page callback' => 'mpautocomplete_autocomplete',
+		'access arguments' => user_access('access content'),
+  );
+
+  return $items;
+}
+
+
+function mpautocomplete_widget_info() {
+  return array(
+    'mpautocomplete' => array(
+      'label' => 'MP Autocomplete Field',
+      'field types' => array('text'),
+    ),
+  );
+}
+
+
+function mpautocomplete_widget_settings($op, $widget) {
+  switch ($op) {
+    case 'form':
+      $form = array();
+      $form['jurisdiction'] = array(
+        '#type' => 'radios',
+        '#title' => t('Jurisdiction'),
+        '#default_value' => isset($widget['jurisdiction']) ? $widget['jurisdiction'] : 1,
+        '#options' => array(t('Provincial'), t('Federal')),
+      );
+      $form['mtc_key'] = array(
+        '#type' => 'textfield',
+        '#title' => t('makethechange.ca service key'),
+        '#default_value' => isset($widget['mtc_key']) ? $widget['mtc_key'] : '',
+      );
+      return $form;
+
+    case 'save':
+      return array('jurisdiction', 'mtc_key');
+   }
+}
+
+
+/**
+ * Implementation of hook_widget().
+ */
+function mpautocomplete_widget($op, &$node, $field, &$items) {
+  switch ($op) {
+    case 'form':
+      $form = array();
+      $form[$field['field_name']] = array('#tree' => TRUE);
+      $form[$field['field_name']][0]['value'] = array(
+        '#type' => 'textfield',
+        '#title' => t($field['widget']['label']),
+        '#default_value' => isset($items[0]['value']) ? $items[0]['value'] : '',
+        '#required' => $field['required'],
+        '#description' => t($field['widget']['description']),
+        '#weight' => $field['widget']['weight'],
+        '#autocomplete_path' => 'text/mpautocomplete/' . $field['widget']['mtc_key'] . '/' . $field['widget']['jurisdiction'],
+      );
+      return $form;
+
+    case 'process form values':
+      //Don't save empty fields except the first value
+      variable_set('returned', $items);
+      foreach ($items as $delta => $item) {
+        if ($item['value'] == '' && $delta > 0) {
+          unset($items[$delta]);
+        }
+      }
+      variable_set('returnedmody', $items);
+      break;
+  }
+}
+
+
+/**
+ * Retrieve a pipe-delimited string of autocomplete suggestions
+ */
+function mpautocomplete_autocomplete($key = '', $jurisdiction = '1', $string = '') {
+  require_once( drupal_get_path('module', 'connect') . '/connect_lookup.php');
+  $matches = array();
+  //$url = drupal_get_path('module','mpautocomplete') . '/call_remote_site.php?url=';
+  $string = trim($string);
+
+  switch ($jurisdiction) {
+
+    /*
+    case 0: //provicial
+      if (preg_match('/^[a-z]\d[a-z]\s*\d[a-z]\d$/i',$string)){//postal code
+        $url .= 'http://makethechange.ca/provincial/on_riding.php?pc=' . urlencode($string) . '&type=csv&key=demo';
+        $results = file_get_contents($url,FALSE,NULL,0,200);
+        $tokenname = strtok($results, ",\n");
+        $i=0;
+        while ($tokenname !== false) {
+          ++$i;
+          $tokenemail = strtok(" ,\n");
+          $tokenname = (!empty($tokenname)) ? $tokenname : t('No match, please choose from the ridings listed below.');
+          $matches['Postal Code: ' . $string . ' -> ' . $tokenname . ' - ' . $tokenemail] = 'Postal Code: ' . $string . ' -> ' . $tokenname . ' - ' . $tokenemail;
+          $tokenname = strtok(",\n");
+        }
+        $tokenname = ($i != 0) ? t('If incorrect') :  t('Not found, ');
+        $tokenname .= ' ' . t('please choose from the ridings listed below.');
+        $matches['Postal Code: ' . $string . ' -> ' . $tokenname] = 'Postal Code: ' . $string . ' -> ' . $tokenname;
+      }
+      if (is_numeric($string) || strlen($string) == 5){//EDID
+        $url .= 'http://makethechange.ca/provincial/on_riding.php?edid=' . urlencode($string) .  '&type=csv&key=demo';
+        $results = file_get_contents($url,FALSE,NULL,0,200);
+        $tokenname = strtok($results, ",\n");
+        while ($tokenname !== false) {
+          $tokenemail = strtok(" ,\n");
+          $matches['ID: ' . $string . ' -> ' . $tokenname . ' - ' . $tokenemail] = 'ID: ' . $string . ' -> ' . $tokenname . ' - ' . $tokenemail;
+          $tokenname = strtok(",\n");
+        }
+      }
+      if (strlen($string) >= 3 && !is_numeric($string)){//Name
+        $url .= 'http://makethechange.ca/provincial/on_riding.php?first_name=' . urlencode($string) . '&type=csv&key=demo';
+        $results = file_get_contents($url,FALSE,NULL,0,200);
+        $url .= 'http://makethechange.ca/provincial/on_riding.php?last_name=' . urlencode($string) . '&type=csv&key=demo';
+        $results .= file_get_contents($url,FALSE,NULL,0,200);
+        $tokenname = strtok($results, ",\n");
+        while ($tokenname !== false) {
+          $tokenemail = strtok(" ,\n");
+          $matches[$tokenname . ' - ' . $tokenemail] = $tokenname . ' - ' . $tokenemail;
+          $tokenname = strtok(",\n");
+        }
+      }
+
+      break;
+      */
+
+    case 1: //federal
+
+      // postal code -> edid -> MP
+      if (connect_is_postalcode($string)) {
+        $edid_array = _connect_get_riding( $key, $string, 'federal', 'federal' );
+        if ( empty($edid_array) ) {
+          $matches[] = 'There was a problem looking up your riding. Please choose it from the list.';
+        } 
+        else {
+          foreach ( $edid_array as $edid ) {
+            $mp = _connect_get_MP_by_EDID($key, $edid['id']);
+            if ( !empty($mp) ) {
+              $matches[$edid['id'] .' | '. $mp->mp_name] = 'Postal Code '. $string .' -&gt; '. $mp->mp_name .', MP';
+            }
+          }
+          $message = (count($matches) > 0) ? t('If incorrect, ') :  t('We could not find your MP: ');
+          $message .= t('please choose your riding from the list.');
+          $matches['no match'] = $message;
+        }
+      } 
+      elseif ( strlen($string) > 5 ) {
+        $matches[] = 'You have entered an invalid postal code.';
+      }
+      break;
+  }
+  print drupal_to_js($matches);
+  exit();
+}
+
+
+/*
+ *  function to look up contact info for Canadian MP -- Autocomplete version
+ * requires MP autocomplete and riding selection fields
+ *
+ *  uses the OpenConcept Consulting web service at http://makethechange.ca/
+ *  which requires a client key
+ *
+ */
+function mpautocomplete_lookup($op='lookup', &$parent, &$child) {
+  switch ($op) {
+    case 'requires':    
+      $return['variables']  = array(
+        'makethechange_key' => array(
+          '#type'  => 'textfield',
+          '#title' => 'Makethechange web service key',
+          '#default_value' => connect_node_options( $parent->nid, 'makethechange_key' ),
+          '#required' => TRUE,
+        ),
+        'mp_autocomplete_lookup_cache' => array(
+          '#type'  => 'radios',
+          '#title' => 'Cache the lookup data?',
+          '#options' => array( 'no' => 'No', 'yes' => 'Yes'),
+          '#default_value' => connect_node_options( $parent->nid, 'mp_autocomplete_lookup_cache'),
+          '#required' => TRUE,
+        ),
+      );
+      $return['child']  = array(
+        'riding_auto' => 'MP autocomplete field',
+        'riding_list' => 'Riding list (to be selected if autocomplete fails)',
+      );
+      return $return;
+
+    case 'cache' :
+      return array(
+        'EDID2MP' => 'Federal riding to MP',
+        'pc2riding_federal_federal_ca' => 'Postal code to Federal riding'
+      );
+      break;
+      
+    case 'validate' :
+      $map  = connect_get_map($parent->nid);
+      $riding_auto = $child[$map['riding_auto']][0]['value'];
+      $riding_list = $child[$map['riding_list']]['key'];
+      if ( empty($riding_auto) && empty($riding_list) ) {
+        form_set_error('', 'Please enter your postal code or select your riding from the list.');
+      }
+      break;
+
+    case 'lookup':
+      $edid = 0;
+      $use_cache  = (connect_node_options($parent->nid, 'mp_autocomplete_lookup_cache') == 'yes');
+      $riding_auto = connect_value( 'riding_auto', $parent, $child, 'child' );
+      $riding_list = connect_value( 'riding_list', $parent, $child, 'child' );
+      if ( !empty($riding_list) ) {
+        $edid = (int) $riding_list;
+      }
+      if ( $edid == 0 && !empty($riding_auto) ) {
+        list($id,$discard) = sscanf($riding_auto, "%d | %s");
+        $edid = (int) $id;
+      }
+
+      // do the lookup
+      if ( is_numeric($edid) ) {
+        $mtc_key = connect_node_options( $parent->nid, 'makethechange_key' );
+        $mp = _connect_get_MP_by_EDID( $mtc_key, $edid, $use_cache);
+        if ($mp ){
+          $return['name']  = $mp->mp_name;
+          $return['email'] = $mp->Email;
+          $return['fax']   = $mp->HillFax;
+          return $return;
+        }
+      } else {
+        die('problem!');
+      }
+      return null;
+  }
+}
+

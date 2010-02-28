@@ -1,0 +1,41 @@
+.connect-message {
+  margin-top: 1em;
+  border: 1px solid navy;
+  padding: 1em;
+}
+
+.connect-comment {
+  font-size: smaller;
+  font-style: italic;
+  margin-top: 0;
+}
+
+#connect-form-title {
+  font-size: larger;
+  font-weight: bold;
+  padding-top: 1em;
+}
+
+#connect-progress-report {
+  clear: both;
+  width: 100%;
+  text-align: right;
+  font-size: small;
+}
+
+#connect-progress-border {
+  height: 20px;
+  width: 100%;
+  background: #fff;
+  border: 1px solid silver;
+  margin: 0;
+  padding: 0;
+  font-size: small;
+}
+
+#connect-progress-bar {
+  height: 16px;
+  margin: 2px;
+  padding: 0;
+  background: #C9DDEC;
+}
