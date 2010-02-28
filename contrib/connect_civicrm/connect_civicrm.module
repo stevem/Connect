@@ -10,7 +10,7 @@ function connect_civicrm_connect() {
 		'connect_civicrm_add_participants' => array(
 		  'title' 		=> 'CiviCRM: add participants',
 		  'desc'  		=> 'Saves participant information to CiviCRM.',
-		),
+		),);
 }
 
 
