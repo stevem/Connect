@@ -126,7 +126,9 @@ function connect_menu() {
     'type'   => MENU_LOCAL_TASK,
     'weight' => 5,
     'page callback'    => 'connect_node_config_functions',
+		'page arguments'	=> array(1),
     'access callback'  => 'connect_menuitem_admin_access',
+		'access arguments'	=> array(1),
   );
 
   // parent node: configure functions
@@ -135,7 +137,9 @@ function connect_menu() {
     'type'   => MENU_LOCAL_TASK,
     'weight' => 6,
     'page callback'    => 'connect_node_config_settings',
+		'page arguments'	=> array(1),
     'access callback'  => 'connect_menuitem_admin_access',
+		'access arguments'	=> array(1),
   );
 
 /*
@@ -190,6 +194,7 @@ function connect_node_load($nid = 0) {
 
 // allow access to admin items
 function connect_menuitem_admin_access(&$node = FALSE) {
+	
   return ($GLOBALS['user']->uid == 1 || $GLOBALS['user']->uid == $node->uid || user_access('manage connect'));
 }
 
