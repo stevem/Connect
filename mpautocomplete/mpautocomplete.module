@@ -22,11 +22,11 @@ function mpautocomplete_connect_lookup() {
 }
 
 
-function mpautocomplete_menu($may_cache) {
+function mpautocomplete_menu() {
   $items = array();
 
 	$items['text/mpautocomplete'] = array(
-		'type' => MENU_CALLBACK);
+		'type' => MENU_CALLBACK,
 		'title' => 'custom text autocomplete',
 		'page callback' => 'mpautocomplete_autocomplete',
 		'access arguments' => user_access('access content'),
