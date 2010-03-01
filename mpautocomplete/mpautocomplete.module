@@ -29,7 +29,7 @@ function mpautocomplete_menu() {
 		'type' => MENU_CALLBACK,
 		'title' => 'custom text autocomplete',
 		'page callback' => 'mpautocomplete_autocomplete',
-		'access arguments' => user_access('access content'),
+		'access arguments' => array('access content'),
   );
 
   return $items;
